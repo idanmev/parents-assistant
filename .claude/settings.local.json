@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/idanmevasem/Downloads/**)",
+      "Bash(python3 -c ' *)",
+      "mcp__44dcf917-ab5a-4d30-a107-9e951efe3bad__search_threads",
+      "mcp__cfa360bc-dca9-4f3f-94f0-8c9e5019149c__search_files",
+      "mcp__44dcf917-ab5a-4d30-a107-9e951efe3bad__get_thread",
+      "mcp__cfa360bc-dca9-4f3f-94f0-8c9e5019149c__read_file_content",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__browser_batch",
+      "mcp__Claude_in_Chrome__computer",
+      "mcp__Claude_in_Chrome__get_page_text",
+      "Bash(python3 -c \"import docx; print\\('python-docx available'\\)\")",
+      "Bash(pip3 install *)",
+      "Bash(python3 -c \"import docx; print\\('python-docx ready'\\)\")",
+      "mcp__Claude_in_Chrome__navigate",
+      "Bash(unzip -o \"273011 \\(1\\).zip\" -d /tmp/natasha_docs/)",
+      "Read(//tmp/**)",
+      "Bash(mkdir -p /tmp/natasha_docs)",
+      "Read(//private/tmp/natasha_docs/**)",
+      "mcp__Claude_in_Chrome__find",
+      "Bash(cp \"/Users/idanmevasem/Downloads/How does international relocation and repeated env.md\" /Users/idanmevasem/Desktop/ParentsAssistant/research/research_relocation-adhd.md)",
+      "Bash(cp \"/Users/idanmevasem/Downloads/What does research say about the role of predictab.md\" /Users/idanmevasem/Desktop/ParentsAssistant/research/research_routines-transitions.md)",
+      "Bash(cp \"/Users/idanmevasem/Downloads/What are the most evidence-based behavioral and em.md\" /Users/idanmevasem/Desktop/ParentsAssistant/research/research_behavioral-emotional-patterns.md)",
+      "Bash(cp \"/Users/idanmevasem/Downloads/How does the arrival of a new sibling affect a chi.md\" /Users/idanmevasem/Desktop/ParentsAssistant/research/research_new-sibling.md)",
+      "Bash(npm --version)",
+      "Bash(npm init *)",
+      "Bash(npm install *)"
+    ]
+  }
+}
