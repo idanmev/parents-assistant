@@ -1,0 +1,31 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Build and distribution
+dist/
+build/
+out/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Operating System files
+.DS_Store
+.DS_Store?
+._*
+Thumds.db
+ehthumbs.db
+Desktop.ini
+
+# Tooling/Editors
+.claude/
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
