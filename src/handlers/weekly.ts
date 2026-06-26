@@ -1,5 +1,5 @@
 import { Bot } from 'grammy';
-import { generateMorningBrief } from '../claude/client';
+import { generateMorningBrief } from '../gemini/client';
 import { supabase, saveMorningBrief } from '../supabase/client';
 
 async function getJournalsForWeeks(weeks = 4): Promise<string> {

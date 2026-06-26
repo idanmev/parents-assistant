@@ -13,7 +13,7 @@ import { supabase } from './supabase/client';
 
 dotenv.config();
 
-const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN!);
+export const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN!);
 
 // ─── Auth guard ────────────────────────────────────────────────────────────────
 bot.use(async (ctx, next) => {
@@ -129,69 +129,11 @@ bot.on('message:text', async (ctx) => {
   await handleChat(ctx, text);
 });
 
-// ─── Scheduler — per-user timezone ─────────────────────────────────────────────
-function localTime(timezone: string) {
-  const now = new Date(new Date().toLocaleString('en-US', { timeZone: timezone }));
-  return { hour: now.getHours(), minute: now.getMinutes(), day: now.getDay(), dateStr: now.toISOString().split('T')[0] };
-}
+// ─── Scheduler logic has been moved to api/cron.ts for Vercel ───────────────
 
-function startScheduler() {
-  const sentBriefs = new Map<number, string>(); // userId → last date brief was sent
-  const sentWeekly = new Map<number, string>();
-  const sentJournal = new Map<number, string>();
-
-  setInterval(async () => {
-    const users = getAllUsers();
-
-    for (const { telegramId, author } of users) {
-      try {
-        const tz = await getUserTimezone(telegramId);
-        const { hour, minute, day, dateStr } = localTime(tz);
-
-        // Morning brief at 7:00
-        if (hour === 7 && minute === 0 && sentBriefs.get(telegramId) !== dateStr) {
-          sentBriefs.set(telegramId, dateStr);
-          await sendMorningBriefToUser(bot, telegramId, tz);
-        }
-
-        // Auto-journal at 22:00
-        if (hour === 22 && minute === 0 && sentJournal.get(telegramId) !== dateStr) {
-          sentJournal.set(telegramId, dateStr);
-          await autoSaveJournalIfNeeded(bot, telegramId, author);
-        }
-
-        // Weekly brief — Monday (or Sunday) at 7:30
-        const { data: stateData } = await supabase
-          .from('user_states')
-          .select('week_start')
-          .eq('telegram_user_id', telegramId)
-          .single();
-        const weekStartDay = stateData?.week_start === 'sunday' ? 0 : 1;
-
-        if (day === weekStartDay && hour === 7 && minute === 30 && sentWeekly.get(telegramId) !== dateStr) {
-          sentWeekly.set(telegramId, dateStr);
-          await sendWeeklyBrief(bot);
-        }
-      } catch (err) {
-        console.error(`Scheduler error for user ${telegramId}:`, err);
-      }
-    }
-  }, 60 * 1000);
-}
-
-// ─── Start ─────────────────────────────────────────────────────────────────────
 bot.catch((err) => {
   console.error('Bot error:', err);
 });
 
-console.log('Connecting to Telegram...');
-
-bot.start({
-  onStart: (info) => {
-    console.log(`Bot is running as @${info.username}`);
-    startScheduler();
-  },
-}).catch((err) => {
-  console.error('Failed to start bot:', err.message);
-  process.exit(1);
-});
+// For Vercel, we do NOT call bot.start()
+// The bot is exported and handled via webhooks in api/bot.ts

@@ -1,5 +1,5 @@
 import { Context, Bot } from 'grammy';
-import { generateMorningBrief } from '../claude/client';
+import { generateMorningBrief } from '../gemini/client';
 import { getRecentJournals } from '../supabase/client';
 import { safeSend } from '../utils/send';
 

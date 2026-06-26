@@ -1,5 +1,5 @@
 import { Context } from 'grammy';
-import { askClaude } from '../claude/client';
+import { askGemini } from '../gemini/client';
 import { buildSystemPrompt } from '../claude/prompts';
 import {
   getRecentJournals,
@@ -22,7 +22,7 @@ export async function handleSOS(ctx: Context, userMessage: string) {
 
   const systemPrompt = buildSystemPrompt(recentJournals, 'sos', author);
 
-  const response = await askClaude(systemPrompt, history, userMessage);
+  const response = await askGemini(systemPrompt, history, userMessage);
 
   await safeSend(ctx, response);
 

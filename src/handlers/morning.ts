@@ -1,5 +1,5 @@
 import { Bot } from 'grammy';
-import { generateMorningBrief } from '../claude/client';
+import { generateMorningBrief } from '../gemini/client';
 import { buildMorningBriefPrompt } from '../claude/prompts';
 import { getRecentJournals, saveMorningBrief } from '../supabase/client';
 

@@ -1,7 +1,7 @@
 import { Context } from 'grammy';
 import { safeSend } from '../utils/send';
 import { getAuthor } from '../utils/users';
-import { askClaude } from '../claude/client';
+import { askGemini } from '../gemini/client';
 import { buildSystemPrompt } from '../claude/prompts';
 import {
   getRecentJournals,
@@ -23,7 +23,7 @@ export async function handleChat(ctx: Context, userMessage: string) {
 
   const systemPrompt = buildSystemPrompt(recentJournals, 'chat', author);
 
-  const response = await askClaude(systemPrompt, history, userMessage);
+  const response = await askGemini(systemPrompt, history, userMessage);
 
   await safeSend(ctx, response);
 

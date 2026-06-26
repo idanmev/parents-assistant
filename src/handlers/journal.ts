@@ -1,10 +1,10 @@
 import { Context } from 'grammy';
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenAI } from '@google/genai';
 import { saveJournalEntry, getUserState, setUserState, getTodayConversations, hasJournalToday } from '../supabase/client';
 import { getAuthor } from '../utils/users';
 import { safeSend } from '../utils/send';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 async function draftJournalFromConversation(
   conversation: string,
@@ -12,13 +12,7 @@ async function draftJournalFromConversation(
 ): Promise<{ what_worked: string; what_challenged: string; what_to_try: string; summary: string }> {
   const name = author === 'idan' ? 'עידן' : 'Sveta';
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 512,
-    messages: [
-      {
-        role: 'user',
-        content: `זו השיחה של ${name} עם הבוט המאמן היום:
+  const prompt = `זו השיחה של ${name} עם הבוט המאמן היום:
 
 ${conversation}
 
@@ -28,12 +22,18 @@ ${conversation}
   "what_challenged": "משפט אחד קצר על מה שהיה קשה",
   "what_to_try": "דבר ספציפי אחד לנסות מחר",
   "summary": "סיכום של 2-3 שורות לשיחה של היום — מה קרה, מה הניסיון היה"
-}`,
-      },
-    ],
+}`;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+    config: {
+      maxOutputTokens: 512,
+      responseMimeType: 'application/json',
+    },
   });
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '{}';
+  const text = response.text || '{}';
 
   try {
     return JSON.parse(text);
