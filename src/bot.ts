@@ -131,9 +131,16 @@ bot.on('message:text', async (ctx) => {
 
 // ─── Scheduler logic has been moved to api/cron.ts for Vercel ───────────────
 
+import { updateErrors } from './utils/updateState';
+
 bot.catch((err) => {
   console.error('Bot error:', err);
+  const updateId = err.ctx?.update?.update_id;
+  if (updateId) {
+    updateErrors.set(updateId, err.error);
+  }
 });
+
 
 // For Vercel, we do NOT call bot.start()
 // The bot is exported and handled via webhooks in api/bot.ts

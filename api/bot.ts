@@ -1,6 +1,7 @@
 import { webhookCallback } from 'grammy';
 import { bot } from '../src/bot';
 import { claimUpdate, markUpdateSent, markUpdateFailed } from '../src/supabase/client';
+import { updateErrors } from '../src/utils/updateState';
 
 // Build a Grammy handler that we call manually after the dedupe gate.
 const grammyHandler = webhookCallback(bot, 'http');
@@ -53,7 +54,17 @@ export default async function handler(req: any, res: any) {
 
     // 'claimed' or 'takeover' — we are responsible for processing this update.
     try {
+      // Make sure we clean up any pre-existing errors for this updateId (e.g. from previous retries)
+      updateErrors.delete(updateId);
+
       await grammyHandler(req, res);
+
+      // Check if an error was captured inside the Grammy execution chain
+      const botError = updateErrors.get(updateId);
+      if (botError) {
+        updateErrors.delete(updateId);
+        throw botError;
+      }
 
       // Grammy resolved without throwing, which means the Telegram reply was
       // attempted inside the handler chain. Mark as sent.
