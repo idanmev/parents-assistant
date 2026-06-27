@@ -14,8 +14,8 @@ const KB_FILES = [
 
 let cachedKB: string | null = null;
 
-export function loadKnowledgeBase(): string {
-  if (cachedKB) return cachedKB;
+export function loadKnowledgeBase(forceReload: boolean = false): string {
+  if (cachedKB && !forceReload) return cachedKB;
 
   const sections: string[] = [];
 
