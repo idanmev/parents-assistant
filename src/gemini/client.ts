@@ -6,8 +6,8 @@ dotenv.config();
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const MODEL = 'gemini-2.5-flash';
-const CHAT_MAX_OUTPUT_TOKENS = 3072;
-const MORNING_BRIEF_MAX_OUTPUT_TOKENS = 2048;
+const CHAT_MAX_OUTPUT_TOKENS = 1536;
+const MORNING_BRIEF_MAX_OUTPUT_TOKENS = 1024;
 
 export async function askGemini(
   systemPrompt: string,
@@ -40,25 +40,7 @@ export async function askGemini(
   let fullText = response.text || '';
   const finishReason = response.candidates?.[0]?.finishReason;
 
-  if (finishReason === 'MAX_TOKENS') {
-    console.log(`[Gemini] Response hit MAX_TOKENS (${CHAT_MAX_OUTPUT_TOKENS}). Attempting 1 continuation...`);
-    
-    contents.push({ role: 'model', parts: [{ text: fullText }] });
-    contents.push({ role: 'user', parts: [{ text: 'Please continue exactly where you left off without any introductory text.' }] });
-
-    const continuationResponse = await ai.models.generateContent({
-      model: MODEL,
-      contents,
-      config: {
-        systemInstruction: systemPrompt,
-        maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
-      },
-    });
-
-    fullText += continuationResponse.text || '';
-  } else {
-    console.log(`[Gemini] Response finished naturally. Reason: ${finishReason}`);
-  }
+  console.log(`[Gemini] Response finished. Reason: ${finishReason}`);
 
   return fullText;
 }
@@ -77,27 +59,7 @@ export async function generateMorningBrief(prompt: string): Promise<string> {
   let fullText = response.text || '';
   const finishReason = response.candidates?.[0]?.finishReason;
 
-  if (finishReason === 'MAX_TOKENS') {
-    console.log(`[Gemini] Morning Brief hit MAX_TOKENS. Attempting 1 continuation...`);
-    
-    const continuationContents = [
-      { role: 'user', parts: [{ text: prompt }] },
-      { role: 'model', parts: [{ text: fullText }] },
-      { role: 'user', parts: [{ text: 'Please continue exactly where you left off.' }] }
-    ];
-
-    const continuationResponse = await ai.models.generateContent({
-      model: MODEL,
-      contents: continuationContents as any, // Cast to any to bypass strict type mismatch if SDK wants Content array
-      config: {
-        maxOutputTokens: MORNING_BRIEF_MAX_OUTPUT_TOKENS,
-      },
-    });
-
-    fullText += continuationResponse.text || '';
-  } else {
-    console.log(`[Gemini] Morning Brief finished naturally. Reason: ${finishReason}`);
-  }
+  console.log(`[Gemini] Morning Brief finished. Reason: ${finishReason}`);
 
   return fullText;
 }

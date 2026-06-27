@@ -53,6 +53,7 @@ export default async function handler(req: any, res: any) {
     }
 
     // 'claimed' or 'takeover' — we are responsible for processing this update.
+    const totalStartTime = Date.now();
     try {
       // Make sure we clean up any pre-existing errors for this updateId (e.g. from previous retries)
       updateErrors.delete(updateId);
@@ -68,11 +69,11 @@ export default async function handler(req: any, res: any) {
 
       // Grammy resolved without throwing, which means the Telegram reply was
       // attempted inside the handler chain. Mark as sent.
-      console.log(`[Webhook] update_id=${updateId} processing complete — marking sent.`);
+      console.log(`[Webhook] update_id=${updateId} processing complete — marking sent. Total took ${Date.now() - totalStartTime}ms.`);
       await markUpdateSent(updateId);
     } catch (processingError: any) {
       const errMsg = processingError?.message ?? String(processingError);
-      console.error(`[Webhook] update_id=${updateId} processing FAILED:`, errMsg);
+      console.error(`[Webhook] update_id=${updateId} processing FAILED after ${Date.now() - totalStartTime}ms:`, errMsg);
       await markUpdateFailed(updateId, errMsg);
 
       // Return 200 so Telegram does not keep retrying something that already
