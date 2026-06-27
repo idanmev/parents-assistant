@@ -6,7 +6,7 @@ dotenv.config();
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const MODEL = 'gemini-2.5-flash';
-const CHAT_MAX_OUTPUT_TOKENS = 4096;
+const CHAT_MAX_OUTPUT_TOKENS = 3072;
 const MORNING_BRIEF_MAX_OUTPUT_TOKENS = 2048;
 
 export async function askGemini(
@@ -23,6 +23,8 @@ export async function askGemini(
 
   console.log(`[Gemini] Model: ${MODEL}, Output Limit: ${CHAT_MAX_OUTPUT_TOKENS}`);
   console.log(`[Gemini] Approx System Prompt Size: ~${systemPrompt.length} chars`);
+  console.log(`[Gemini] STARTING generation...`);
+  const startTime = Date.now();
 
   let response = await ai.models.generateContent({
     model: MODEL,
@@ -32,6 +34,8 @@ export async function askGemini(
       maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
     },
   });
+  
+  console.log(`[Gemini] ENDED generation. Took ${Date.now() - startTime}ms.`);
 
   let fullText = response.text || '';
   const finishReason = response.candidates?.[0]?.finishReason;
