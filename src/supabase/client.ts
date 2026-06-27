@@ -165,3 +165,111 @@ export async function saveMorningBrief(content: string) {
 
   if (error) console.error('Error saving morning brief:', error);
 }
+
+// ---------------------------------------------------------------------------
+// Webhook Idempotency — used exclusively from api/bot.ts
+// ---------------------------------------------------------------------------
+
+const STALE_PROCESSING_THRESHOLD_MS = 90_000; // 90 seconds
+
+/**
+ * Attempts to claim an incoming Telegram update_id atomically.
+ *
+ * Returns:
+ *   'claimed'   — insert succeeded; this instance owns processing.
+ *   'ignore'    — a recent processing/sent row exists; ignore this retry.
+ *   'takeover'  — a stale/failed row exists and this instance successfully
+ *                 took ownership via a conditional UPDATE; process it.
+ *   'skip'      — another instance beat us to the stale-takeover UPDATE.
+ */
+export async function claimUpdate(
+  updateId: number,
+  telegramUserId: number,
+  chatId: number,
+  messageId: number
+): Promise<'claimed' | 'ignore' | 'takeover' | 'skip'> {
+  // 1. Optimistic insert — this is the primary race-condition guard.
+  //    PostgreSQL PRIMARY KEY guarantees at most one insert wins.
+  const { error: insertError } = await supabase.from('processed_updates').insert({
+    update_id: updateId,
+    telegram_user_id: telegramUserId,
+    chat_id: chatId,
+    message_id: messageId,
+    status: 'processing',
+  });
+
+  if (!insertError) {
+    // We inserted successfully — we own this update.
+    return 'claimed';
+  }
+
+  // Insert failed (duplicate key). Fetch the existing row.
+  const { data: existing } = await supabase
+    .from('processed_updates')
+    .select('status, updated_at')
+    .eq('update_id', updateId)
+    .maybeSingle();
+
+  if (!existing) {
+    // Rare: insert failed but row not found (transient DB error). Safe to ignore.
+    return 'ignore';
+  }
+
+  if (existing.status === 'sent') {
+    // Already completed successfully — ignore retry.
+    return 'ignore';
+  }
+
+  const ageMs = Date.now() - new Date(existing.updated_at).getTime();
+
+  if (existing.status === 'processing' && ageMs < STALE_PROCESSING_THRESHOLD_MS) {
+    // Another instance is actively processing this — ignore retry.
+    return 'ignore';
+  }
+
+  // Status is 'failed' OR 'processing' and stale — attempt conditional takeover.
+  // The WHERE clause ensures only one Vercel instance wins even if two race here.
+  const thresholdISO = new Date(Date.now() - STALE_PROCESSING_THRESHOLD_MS).toISOString();
+
+  const { data: takeoverData } = await supabase
+    .from('processed_updates')
+    .update({
+      status: 'processing',
+      error_message: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('update_id', updateId)
+    .or(`status.eq.failed,and(status.eq.processing,updated_at.lt.${thresholdISO})`)
+    .select('update_id');
+
+  if ((takeoverData?.length ?? 0) > 0) {
+    return 'takeover';
+  }
+
+  // Another instance won the takeover race — ignore.
+  return 'skip';
+}
+
+/** Called from api/bot.ts after Grammy + Gemini + Telegram send all succeed. */
+export async function markUpdateSent(updateId: number): Promise<void> {
+  const { error } = await supabase
+    .from('processed_updates')
+    .update({ status: 'sent', updated_at: new Date().toISOString() })
+    .eq('update_id', updateId);
+
+  if (error) console.error(`[DB] Failed to mark update ${updateId} as sent:`, error);
+}
+
+/** Called from api/bot.ts if Grammy / Gemini / Telegram send throws. */
+export async function markUpdateFailed(updateId: number, errorMessage: string): Promise<void> {
+  const { error } = await supabase
+    .from('processed_updates')
+    .update({
+      status: 'failed',
+      error_message: errorMessage.slice(0, 500),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('update_id', updateId);
+
+  if (error) console.error(`[DB] Failed to mark update ${updateId} as failed:`, error);
+}

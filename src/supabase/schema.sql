@@ -44,6 +44,21 @@ CREATE TABLE IF NOT EXISTS user_states (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Webhook idempotency — prevents Telegram retries from being double-processed
+CREATE TABLE IF NOT EXISTS processed_updates (
+  update_id BIGINT PRIMARY KEY,
+  telegram_user_id BIGINT,
+  chat_id BIGINT,
+  message_id BIGINT,
+  status TEXT NOT NULL CHECK (status IN ('processing', 'sent', 'failed')),
+  error_message TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_processed_updates_status_created_at
+ON processed_updates (status, created_at);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_journal_entries_date ON journal_entries(date DESC);
 CREATE INDEX IF NOT EXISTS idx_conversations_user ON conversations(telegram_user_id, created_at DESC);
