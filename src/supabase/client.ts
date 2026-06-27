@@ -326,3 +326,117 @@ export async function markUpdateFailed(updateId: number, errorMessage: string): 
   }
 }
 
+// ---------------------------------------------------------------------------
+// Telegram Job Queue — enqueue / fetch / update used by api/bot.ts and api/process-jobs.ts
+// ---------------------------------------------------------------------------
+
+export interface TelegramJob {
+  id: number;
+  update_id: number;
+  telegram_user_id: number;
+  chat_id: number;
+  message_id: number;
+  text: string;
+  status: 'pending' | 'processing' | 'sent' | 'failed';
+  attempts: number;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Insert a new job. Returns true if inserted, false if update_id already exists. */
+export async function enqueueJob(
+  updateId: number,
+  telegramUserId: number,
+  chatId: number,
+  messageId: number,
+  text: string
+): Promise<boolean> {
+  const { error } = await supabase.from('telegram_jobs').insert({
+    update_id: updateId,
+    telegram_user_id: telegramUserId,
+    chat_id: chatId,
+    message_id: messageId,
+    text,
+    status: 'pending',
+  });
+
+  if (error) {
+    if (error.code === '23505') {
+      console.log(`[Jobs] update_id ${updateId} already in telegram_jobs — skipping enqueue.`);
+      return false;
+    }
+    console.error(`[Jobs] Failed to enqueue update_id ${updateId}:`, {
+      code: error.code,
+      message: error.message,
+    });
+    return false;
+  }
+
+  console.log(`[Jobs] update_id ${updateId} enqueued successfully.`);
+  return true;
+}
+
+/**
+ * Fetch up to `limit` pending jobs and atomically mark them as processing.
+ * Returns the list of jobs now owned by this process.
+ */
+export async function claimPendingJobs(limit = 5): Promise<TelegramJob[]> {
+  // Fetch the oldest pending jobs
+  const { data: jobs, error } = await supabase
+    .from('telegram_jobs')
+    .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    console.error(`[Jobs] Failed to fetch pending jobs:`, error.message);
+    return [];
+  }
+
+  if (!jobs || jobs.length === 0) return [];
+
+  const ids = jobs.map((j: TelegramJob) => j.id);
+
+  // Mark them processing in one update
+  const { error: updateError } = await supabase
+    .from('telegram_jobs')
+    .update({ status: 'processing', updated_at: new Date().toISOString() })
+    .in('id', ids)
+    .eq('status', 'pending'); // guard against race: only update still-pending rows
+
+  if (updateError) {
+    console.error(`[Jobs] Failed to mark jobs as processing:`, updateError.message);
+    return [];
+  }
+
+  console.log(`[Jobs] Claimed ${ids.length} jobs for processing: ${ids.join(', ')}`);
+  return jobs as TelegramJob[];
+}
+
+/** Mark a job as sent. */
+export async function markJobSent(jobId: number): Promise<void> {
+  const { error } = await supabase
+    .from('telegram_jobs')
+    .update({ status: 'sent', updated_at: new Date().toISOString() })
+    .eq('id', jobId);
+
+  if (error) console.error(`[Jobs] Failed to mark job ${jobId} as sent:`, error.message);
+  else console.log(`[Jobs] Job ${jobId} marked as sent.`);
+}
+
+/** Mark a job as failed with an error message. */
+export async function markJobFailed(jobId: number, errorMessage: string): Promise<void> {
+  const { error } = await supabase
+    .from('telegram_jobs')
+    .update({
+      status: 'failed',
+      error_message: errorMessage.slice(0, 500),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', jobId);
+
+  if (error) console.error(`[Jobs] Failed to mark job ${jobId} as failed:`, error.message);
+  else console.log(`[Jobs] Job ${jobId} marked as failed: ${errorMessage.slice(0, 100)}`);
+}

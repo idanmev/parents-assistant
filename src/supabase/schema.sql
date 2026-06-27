@@ -59,6 +59,24 @@ CREATE TABLE IF NOT EXISTS processed_updates (
 CREATE INDEX IF NOT EXISTS idx_processed_updates_status_created_at
 ON processed_updates (status, created_at);
 
+-- Job queue for async Gemini processing (avoids Telegram webhook timeout)
+CREATE TABLE IF NOT EXISTS telegram_jobs (
+  id BIGSERIAL PRIMARY KEY,
+  update_id BIGINT UNIQUE NOT NULL,
+  telegram_user_id BIGINT,
+  chat_id BIGINT NOT NULL,
+  message_id BIGINT,
+  text TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'processing', 'sent', 'failed')),
+  attempts INT DEFAULT 0,
+  error_message TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_telegram_jobs_status_created_at
+ON telegram_jobs (status, created_at);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_journal_entries_date ON journal_entries(date DESC);
 CREATE INDEX IF NOT EXISTS idx_conversations_user ON conversations(telegram_user_id, created_at DESC);

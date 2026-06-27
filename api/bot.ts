@@ -1,17 +1,25 @@
-import { webhookCallback } from 'grammy';
-import { bot } from '../src/bot';
-import { claimUpdate, markUpdateSent, markUpdateFailed } from '../src/supabase/client';
-import { updateErrors } from '../src/utils/updateState';
+import { claimUpdate, enqueueJob } from '../src/supabase/client';
 
-// Build a Grammy handler that we call manually after the dedupe gate.
-const grammyHandler = webhookCallback(bot, 'http');
-
+/**
+ * /api/bot — Telegram webhook receiver.
+ *
+ * This endpoint does NOT call Gemini. It returns HTTP 200 immediately.
+ * Heavy processing (Gemini + Telegram reply) happens in /api/process-jobs.
+ *
+ * Flow:
+ *  1. Parse Telegram update (only text messages are handled for now).
+ *  2. Deduplicate via processed_updates (claimUpdate).
+ *  3. Enqueue into telegram_jobs.
+ *  4. Return 200 to Telegram immediately.
+ */
 export default async function handler(req: any, res: any) {
+  // Only accept POST from Telegram
+  if (req.method !== 'POST') {
+    return res.status(405).send('Method Not Allowed');
+  }
+
   const update = req.body;
 
-  // -------------------------------------------------------------------------
-  // Extract Telegram identifiers for logging and deduplication.
-  // -------------------------------------------------------------------------
   const updateId: number | undefined = update?.update_id;
   const telegramUserId: number | undefined =
     update?.message?.from?.id ?? update?.callback_query?.from?.id;
@@ -20,76 +28,50 @@ export default async function handler(req: any, res: any) {
   const messageId: number | undefined =
     update?.message?.message_id ?? update?.callback_query?.message?.message_id;
 
+  // Extract text — only plain text messages are queued for AI processing.
+  // Commands (/start, /journal, etc.) and other update types are ignored for now.
+  const text: string | undefined = update?.message?.text;
+
   console.log(
-    `[Webhook] Received update_id=${updateId} telegram_user_id=${telegramUserId} ` +
-    `chat_id=${chatId} message_id=${messageId}`
+    `[Webhook] update_id=${updateId} user=${telegramUserId} chat=${chatId} msg=${messageId} ` +
+    `text_len=${text?.length ?? 0}`
   );
 
-  // -------------------------------------------------------------------------
-  // Deduplication gate — only run when we have enough context.
-  // -------------------------------------------------------------------------
-  if (updateId !== undefined && telegramUserId !== undefined && chatId !== undefined) {
-    let claimResult: 'claimed' | 'ignore' | 'takeover' | 'skip';
+  // Always return 200 quickly. Only do minimal work first.
+  if (!updateId || !chatId || !telegramUserId) {
+    console.log(`[Webhook] Missing required fields — returning 200 with no action.`);
+    return res.status(200).send('OK');
+  }
 
-    try {
-      claimResult = await claimUpdate(
-        updateId,
-        telegramUserId,
-        chatId,
-        messageId ?? 0
-      );
-    } catch (dbError) {
-      // If the DB call itself fails, log and fall through — better to risk a
-      // duplicate than to silently drop a message.
-      console.error(`[Webhook] claimUpdate threw — falling through without dedupe:`, dbError);
-      return grammyHandler(req, res);
-    }
+  // Skip non-text updates (voice, stickers, etc.) — they have their own handlers
+  // but they're synchronous right now. This PR only queues text messages.
+  if (!text) {
+    console.log(`[Webhook] Non-text update — returning 200 with no action.`);
+    return res.status(200).send('OK');
+  }
 
-    console.log(`[Webhook] update_id=${updateId} claim result: ${claimResult}`);
+  // Skip commands — they need synchronous Grammy handling (short and fast).
+  if (text.startsWith('/')) {
+    console.log(`[Webhook] Command detected — returning 200, commands handled elsewhere.`);
+    return res.status(200).send('OK');
+  }
 
-    if (claimResult === 'ignore' || claimResult === 'skip') {
-      // Another instance owns this update — acknowledge Telegram and stop.
+  try {
+    // Idempotency check
+    const claim = await claimUpdate(updateId, telegramUserId, chatId, messageId ?? 0);
+    console.log(`[Webhook] update_id=${updateId} claim result: ${claim}`);
+
+    if (claim === 'ignore' || claim === 'skip') {
       return res.status(200).send('OK');
     }
 
-    // 'claimed' or 'takeover' — we are responsible for processing this update.
-    const totalStartTime = Date.now();
-    try {
-      // Make sure we clean up any pre-existing errors for this updateId (e.g. from previous retries)
-      updateErrors.delete(updateId);
+    // Enqueue for async processing
+    await enqueueJob(updateId, telegramUserId, chatId, messageId ?? 0, text);
 
-      await grammyHandler(req, res);
-
-      // Check if an error was captured inside the Grammy execution chain
-      const botError = updateErrors.get(updateId);
-      if (botError) {
-        updateErrors.delete(updateId);
-        throw botError;
-      }
-
-      // Grammy resolved without throwing, which means the Telegram reply was
-      // attempted inside the handler chain. Mark as sent.
-      console.log(`[Webhook] update_id=${updateId} processing complete — marking sent. Total took ${Date.now() - totalStartTime}ms.`);
-      await markUpdateSent(updateId);
-    } catch (processingError: any) {
-      const errMsg = processingError?.message ?? String(processingError);
-      console.error(`[Webhook] update_id=${updateId} processing FAILED after ${Date.now() - totalStartTime}ms:`, errMsg);
-      await markUpdateFailed(updateId, errMsg);
-
-      // Return 200 so Telegram does not keep retrying something that already
-      // threw on our side (we'll catch it via Vercel logs / markUpdateFailed).
-      if (!res.headersSent) {
-        return res.status(200).send('OK');
-      }
-    }
-
-    return;
+    return res.status(200).send('OK');
+  } catch (err: any) {
+    // Even on internal error, return 200 so Telegram does not flood us with retries.
+    console.error(`[Webhook] Unexpected error for update_id=${updateId}:`, err?.message ?? err);
+    return res.status(200).send('OK');
   }
-
-  // -------------------------------------------------------------------------
-  // No update_id / user context available (e.g. health check pings).
-  // Just pass through to Grammy without deduplication.
-  // -------------------------------------------------------------------------
-  console.log(`[Webhook] update has no identifiable user — skipping dedupe, passing through.`);
-  return grammyHandler(req, res);
 }

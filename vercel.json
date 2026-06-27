@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "public",
+  "functions": {
+    "api/process-jobs.ts": {
+      "maxDuration": 60
+    },
+    "api/cron.ts": {
+      "maxDuration": 60
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/process-jobs",
+      "schedule": "* * * * *"
+    }
+  ]
+}
