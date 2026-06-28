@@ -39,7 +39,7 @@ export async function handleSOS(ctx: Context, userMessage: string) {
     memories: (memories || []).map(m => m.summary)
   };
 
-  const systemPrompt = buildSystemPrompt(recentJournals, 'sos', parentName, familyContext);
+  const systemPrompt = buildSystemPrompt(recentJournals, 'sos', parentName, familyContext, familyId);
 
   const response = await askGemini(systemPrompt, history, userMessage);
 

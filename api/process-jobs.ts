@@ -186,7 +186,7 @@ export default async function handler(req: any, res: any) {
         memories: (memories || []).map(m => m.summary)
       };
 
-      const systemPrompt = buildSystemPrompt(recentJournals, 'chat', parentName, familyContext);
+      const systemPrompt = buildSystemPrompt(recentJournals, 'chat', parentName, familyContext, familyId);
 
       let processedText = job.text;
 

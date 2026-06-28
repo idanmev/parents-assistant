@@ -10,9 +10,10 @@ export function buildSystemPrompt(
   recentJournals: string,
   mode: 'sos' | 'chat' | 'morning',
   currentParentName: string,
-  familyContext: FamilyContext
+  familyContext: FamilyContext,
+  familyId?: string
 ): string {
-  const kb = loadKnowledgeBase();
+  const kb = loadKnowledgeBase(familyId);
 
   const journalSection = recentJournals
     ? `\n\n## Recent Journal Entries (Last 7 Days)\n\n${recentJournals}`
