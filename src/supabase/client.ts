@@ -8,13 +8,32 @@ const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SER
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-export async function getRecentJournals(days = 7): Promise<string> {
+export async function createFamily(): Promise<string | null> {
+  const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const { data, error } = await supabase.from('families').insert({
+    invite_code: inviteCode
+  }).select('id').single();
+  
+  if (error) {
+    console.error('Error creating family:', error);
+    return null;
+  }
+  return data.id;
+}
+
+export async function getFamilyByInvite(inviteCode: string): Promise<string | null> {
+  const { data, error } = await supabase.from('families').select('id').eq('invite_code', inviteCode.toUpperCase()).single();
+  if (error) return null;
+  return data.id;
+}
+export async function getRecentJournals(familyId: string, days = 7): Promise<string> {
   const since = new Date();
   since.setDate(since.getDate() - days);
 
   const { data, error } = await supabase
     .from('journal_entries')
-    .select('date, author, content, what_worked, what_challenged, what_to_try')
+    .select('date, telegram_user_id, content, what_worked, what_challenged, what_to_try')
+    .eq('family_id', familyId)
     .gte('date', since.toISOString().split('T')[0])
     .order('date', { ascending: false })
     .limit(10);
@@ -23,7 +42,7 @@ export async function getRecentJournals(days = 7): Promise<string> {
 
   return data
     .map((entry) => {
-      const parts = [`[${entry.date} — ${entry.author}]`, entry.content];
+      const parts = [`[${entry.date} — User ${entry.telegram_user_id}]`, entry.content];
       if (entry.what_worked) parts.push(`✓ What worked: ${entry.what_worked}`);
       if (entry.what_challenged) parts.push(`✗ What challenged: ${entry.what_challenged}`);
       if (entry.what_to_try) parts.push(`→ To try: ${entry.what_to_try}`);
@@ -33,13 +52,15 @@ export async function getRecentJournals(days = 7): Promise<string> {
 }
 
 export async function saveJournalEntry(
-  author: 'idan' | 'sveta',
+  familyId: string,
+  telegramUserId: number,
   content: string,
   structured?: { what_worked?: string; what_challenged?: string; what_to_try?: string },
   messageId?: number
 ) {
   const { error } = await supabase.from('journal_entries').insert({
-    author,
+    family_id: familyId,
+    telegram_user_id: telegramUserId,
     content,
     ...structured,
     raw_telegram_message_id: messageId,
@@ -99,6 +120,9 @@ export async function setUserState(
     current_mode?: string | null;
     journal_step?: string | null;
     journal_draft?: Record<string, string> | null;
+    family_id?: string | null;
+    onboarded?: boolean;
+    display_name?: string;
   }
 ) {
   const { error } = await supabase.from('user_states').upsert({
@@ -128,12 +152,13 @@ export async function isOnboarded(telegramUserId: number): Promise<boolean> {
   return data?.onboarded === true;
 }
 
-export async function hasJournalToday(author: 'idan' | 'sveta'): Promise<boolean> {
+export async function hasJournalToday(familyId: string, telegramUserId: number): Promise<boolean> {
   const today = new Date().toISOString().split('T')[0];
   const { data } = await supabase
     .from('journal_entries')
     .select('id')
-    .eq('author', author)
+    .eq('family_id', familyId)
+    .eq('telegram_user_id', telegramUserId)
     .eq('date', today)
     .limit(1);
   return (data?.length ?? 0) > 0;
@@ -156,11 +181,13 @@ export async function getTodayConversations(telegramUserId: number): Promise<str
     .join('\n');
 }
 
-export async function saveMorningBrief(content: string) {
+export async function saveMorningBrief(familyId: string, content: string, telegramUserIds: number[]) {
   const today = new Date().toISOString().split('T')[0];
   const { error } = await supabase.from('morning_briefs').insert({
+    family_id: familyId,
     date: today,
     content,
+    sent_to_telegram_ids: telegramUserIds
   });
 
   if (error) console.error('Error saving morning brief:', error);
@@ -338,6 +365,7 @@ export interface TelegramJob {
   message_id: number;
   text: string;
   status: 'pending' | 'processing' | 'sent' | 'failed';
+  priority: 'high' | 'normal' | 'scheduled';
   attempts: number;
   error_message: string | null;
   created_at: string;
@@ -350,7 +378,8 @@ export async function enqueueJob(
   telegramUserId: number,
   chatId: number,
   messageId: number,
-  text: string
+  text: string,
+  priority: 'high' | 'normal' | 'scheduled' = 'normal'
 ): Promise<boolean> {
   const { error } = await supabase.from('telegram_jobs').insert({
     update_id: updateId,
@@ -359,6 +388,7 @@ export async function enqueueJob(
     message_id: messageId,
     text,
     status: 'pending',
+    priority,
   });
 
   if (error) {
@@ -382,11 +412,12 @@ export async function enqueueJob(
  * Returns the list of jobs now owned by this process.
  */
 export async function claimPendingJobs(limit = 5): Promise<TelegramJob[]> {
-  // Fetch the oldest pending jobs
+  // Fetch the oldest pending jobs, prioritizing high priority
   const { data: jobs, error } = await supabase
     .from('telegram_jobs')
     .select('*')
     .eq('status', 'pending')
+    .order('priority', { ascending: true }) // 'high' sorts before 'normal'
     .order('created_at', { ascending: true })
     .limit(limit);
 

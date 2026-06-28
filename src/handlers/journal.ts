@@ -1,18 +1,15 @@
 import { Context } from 'grammy';
 import { GoogleGenAI } from '@google/genai';
-import { saveJournalEntry, getUserState, setUserState, getTodayConversations, hasJournalToday } from '../supabase/client';
-import { getAuthor } from '../utils/users';
+import { saveJournalEntry, getUserState, setUserState, getTodayConversations, hasJournalToday, supabase } from '../supabase/client';
 import { safeSend } from '../utils/send';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 async function draftJournalFromConversation(
   conversation: string,
-  author: 'idan' | 'sveta'
+  authorName: string
 ): Promise<{ what_worked: string; what_challenged: string; what_to_try: string; summary: string }> {
-  const name = author === 'idan' ? 'עידן' : 'Sveta';
-
-  const prompt = `זו השיחה של ${name} עם הבוט המאמן היום:
+  const prompt = `זו השיחה של ${authorName} עם הבוט המאמן היום:
 
 ${conversation}
 
@@ -47,17 +44,67 @@ ${conversation}
   }
 }
 
+async function extractABCModelFromEvent(text: string, familyId: string, telegramUserId: number) {
+  // Extract ABC model silently in the background and save to journal_events
+  const prompt = `You are a clinical behavior analyst. Read the following situation from a parent and extract the ABC model parameters into a JSON object. If a field is not mentioned, leave it null or empty array.
+  
+Situation: "${text}"
+
+JSON schema:
+{
+  "situation": "brief summary",
+  "antecedent": "what happened right before the behavior",
+  "behavior": "what the child did",
+  "parent_response": "what the parent did",
+  "outcome": "did it escalate or calm down",
+  "intensity": "low, medium, or high",
+  "possible_triggers": ["list", "of", "triggers"],
+  "strategies_used": ["list", "of", "strategies"]
+}`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: { maxOutputTokens: 512, responseMimeType: 'application/json' },
+    });
+    
+    const parsed = JSON.parse(response.text || '{}');
+    
+    await supabase.from('journal_events').insert({
+      family_id: familyId,
+      telegram_user_id: telegramUserId,
+      raw_text: text,
+      situation: parsed.situation,
+      antecedent: parsed.antecedent,
+      behavior: parsed.behavior,
+      parent_response: parsed.parent_response,
+      outcome: parsed.outcome,
+      intensity: parsed.intensity || 'low',
+      possible_triggers: parsed.possible_triggers || [],
+      strategies_used: parsed.strategies_used || []
+    });
+    console.log('[Memory Engine] ABC event extracted and saved.');
+  } catch (err) {
+    console.error('[Memory Engine] Failed to extract ABC model:', err);
+  }
+}
+
 export async function startJournal(ctx: Context) {
   const userId = ctx.from!.id;
-  const author = getAuthor(userId);
+  const state = await getUserState(userId);
+  if (!state?.family_id) {
+    await safeSend(ctx, `❌ טרם סיימת הרשמה.`);
+    return;
+  }
+  const authorName = state.display_name || 'Parent';
 
   await ctx.replyWithChatAction('typing');
 
   const todayConversation = await getTodayConversations(userId);
 
   if (todayConversation) {
-    // Auto-draft from today's conversation
-    const draft = await draftJournalFromConversation(todayConversation, author);
+    const draft = await draftJournalFromConversation(todayConversation, authorName);
 
     await setUserState(userId, {
       current_mode: 'journal',
@@ -76,7 +123,6 @@ export async function startJournal(ctx: Context) {
 
     await safeSend(ctx, preview);
   } else {
-    // No conversation today — fall back to 3 questions
     await setUserState(userId, {
       current_mode: 'journal',
       journal_step: 'what_worked',
@@ -92,24 +138,23 @@ export async function startJournal(ctx: Context) {
 
 export async function handleJournalStep(ctx: Context, text: string) {
   const userId = ctx.from!.id;
-  const author = getAuthor(userId);
   const state = await getUserState(userId);
 
-  if (!state || state.current_mode !== 'journal') {
+  if (!state || state.current_mode !== 'journal' || !state.family_id) {
     return startJournal(ctx);
   }
 
   const step = state.journal_step;
   const draft = (state.journal_draft || {}) as Record<string, string>;
+  const familyId = state.family_id;
 
   // ── Confirm step (after auto-draft) ──────────────────────────────────────────
   if (step === 'confirm') {
     const isConfirm = /^(כן|yes|ok|אוקי|בסדר|שמור|👍)$/i.test(text.trim());
 
     if (isConfirm) {
-      await saveAndClose(ctx, userId, author, draft);
+      await saveAndClose(ctx, userId, familyId, draft);
     } else {
-      // They want to edit — update the draft with their addition and save
       const updatedDraft = {
         ...draft,
         what_to_try: draft.what_to_try,
@@ -117,7 +162,7 @@ export async function handleJournalStep(ctx: Context, text: string) {
           ? `${draft.summary}\n\nהוספה: ${text}`
           : text,
       };
-      await saveAndClose(ctx, userId, author, updatedDraft);
+      await saveAndClose(ctx, userId, familyId, updatedDraft);
     }
     return;
   }
@@ -145,22 +190,23 @@ export async function handleJournalStep(ctx: Context, text: string) {
     });
     await safeSend(ctx, NEXT_PROMPTS[step as JournalStep]);
   } else {
-    await saveAndClose(ctx, userId, author, draft);
+    await saveAndClose(ctx, userId, familyId, draft);
   }
 }
 
 export async function autoSaveJournalIfNeeded(
   bot: { api: { sendMessage: (id: number, text: string, opts?: object) => Promise<unknown> } },
+  familyId: string,
   telegramUserId: number,
-  author: 'idan' | 'sveta'
+  authorName: string
 ) {
-  const alreadySaved = await hasJournalToday(author);
+  const alreadySaved = await hasJournalToday(familyId, telegramUserId);
   if (alreadySaved) return;
 
   const conversation = await getTodayConversations(telegramUserId);
   if (!conversation) return; // no conversation today — nothing to journal
 
-  const draft = await draftJournalFromConversation(conversation, author);
+  const draft = await draftJournalFromConversation(conversation, authorName);
 
   const fullContent = [
     draft.summary,
@@ -171,11 +217,14 @@ export async function autoSaveJournalIfNeeded(
     .filter(Boolean)
     .join('\n');
 
-  await saveJournalEntry(author, fullContent, {
+  await saveJournalEntry(familyId, telegramUserId, fullContent, {
     what_worked: draft.what_worked,
     what_challenged: draft.what_challenged,
     what_to_try: draft.what_to_try,
   });
+  
+  // Trigger ABC extraction
+  extractABCModelFromEvent(fullContent, familyId, telegramUserId);
 
   const msg =
     `📓 *יומן ערב — נשמר אוטומטית*\n\n` +
@@ -191,7 +240,7 @@ export async function autoSaveJournalIfNeeded(
 async function saveAndClose(
   ctx: Context,
   userId: number,
-  author: 'idan' | 'sveta',
+  familyId: string,
   draft: Record<string, string>
 ) {
   const fullContent = [
@@ -204,7 +253,8 @@ async function saveAndClose(
     .join('\n');
 
   await saveJournalEntry(
-    author,
+    familyId,
+    userId,
     fullContent,
     {
       what_worked: draft.what_worked,
@@ -213,6 +263,9 @@ async function saveAndClose(
     },
     ctx.message?.message_id
   );
+  
+  // Trigger ABC extraction silently in background
+  extractABCModelFromEvent(fullContent, familyId, userId);
 
   await setUserState(userId, {
     current_mode: null,

@@ -1,15 +1,10 @@
 import { Context, InlineKeyboard } from 'grammy';
-import { setUserState, getUserState } from '../supabase/client';
+import { setUserState, getUserState, createFamily, getFamilyByInvite } from '../supabase/client';
 import { safeSend } from '../utils/send';
 
 const COUNTRY_OPTIONS = [
   { label: '🇮🇱 ישראל', timezone: 'Asia/Jerusalem', week_start: 'sunday', callback: 'tz_il' },
-  { label: '🇹🇭 תאילנד', timezone: 'Asia/Bangkok', week_start: 'monday', callback: 'tz_th' },
   { label: '🇺🇸 ארה"ב (מזרח)', timezone: 'America/New_York', week_start: 'monday', callback: 'tz_us_east' },
-  { label: '🇺🇸 ארה"ב (מערב)', timezone: 'America/Los_Angeles', week_start: 'monday', callback: 'tz_us_west' },
-  { label: '🇬🇧 בריטניה', timezone: 'Europe/London', week_start: 'monday', callback: 'tz_uk' },
-  { label: '🇩🇪 אירופה (מרכז)', timezone: 'Europe/Berlin', week_start: 'monday', callback: 'tz_eu' },
-  { label: '🇦🇺 אוסטרליה', timezone: 'Australia/Sydney', week_start: 'monday', callback: 'tz_au' },
   { label: '🌍 אחר', timezone: '', week_start: 'monday', callback: 'tz_other' },
 ];
 
@@ -17,19 +12,48 @@ export const COUNTRY_CALLBACK_MAP = Object.fromEntries(
   COUNTRY_OPTIONS.map((o) => [o.callback, o])
 );
 
-export async function startOnboarding(ctx: Context) {
+export async function startOnboarding(ctx: Context, startPayload?: string) {
   const userId = ctx.from!.id;
+  
+  let familyId: string | null = null;
+  let isPartner = false;
+
+  // Handle deep links
+  if (startPayload && startPayload.startsWith('invite_')) {
+    const inviteCode = startPayload.replace('invite_', '');
+    familyId = await getFamilyByInvite(inviteCode);
+    if (!familyId) {
+      await ctx.reply(`❌ קוד ההזמנה לא תקין או פג תוקף.`);
+      return;
+    }
+    isPartner = true;
+  } else {
+    // Parent 1 (Or simulated web signup)
+    familyId = await createFamily();
+    if (!familyId) {
+      await ctx.reply(`❌ תקלה ביצירת משפחה חדשה. אנא נסה שוב.`);
+      return;
+    }
+  }
 
   await setUserState(userId, {
-    current_mode: 'journal', // reuse mode slot to block other flows during onboarding
-    journal_step: 'onboarding_name',
-    journal_draft: {},
+    family_id: familyId,
+    current_mode: 'journal', // Block other flows
+    journal_step: isPartner ? 'onboarding_partner_name' : 'onboarding_name',
+    journal_draft: { is_partner: isPartner ? 'true' : 'false' },
   });
 
-  await ctx.reply(
-    `👋 *שלום! בוא נגדיר אותך תוך דקה.*\n\nאיך לקרוא לך?`,
-    { parse_mode: 'Markdown' }
-  );
+  if (isPartner) {
+    await ctx.reply(
+      `👋 *ברוך הבא למשפחה!*\n\nלפני שנתחיל, איך לקרוא לך?`,
+      { parse_mode: 'Markdown' }
+    );
+  } else {
+    await ctx.reply(
+      `👋 *שלום! בוא נגדיר את הפרופיל המשפחתי שלכם.*\n\nאיך לקרוא לך?`,
+      { parse_mode: 'Markdown' }
+    );
+  }
 }
 
 export async function handleOnboardingStep(ctx: Context, text: string): Promise<boolean> {
@@ -41,12 +65,31 @@ export async function handleOnboardingStep(ctx: Context, text: string): Promise<
 
   const draft = (state?.journal_draft || {}) as Record<string, string>;
 
+  // Partner Flow
+  if (step === 'onboarding_partner_name') {
+    draft.display_name = text;
+    await setUserState(userId, {
+      current_mode: 'journal',
+      journal_step: 'onboarding_partner_perspective',
+      journal_draft: draft,
+    });
+    await safeSend(ctx, `נעים מאוד, *${text}*!\n\nלפני שנצא לדרך, כל הורה חווה את הילד בצורה קצת אחרת. מה החלק שהכי מאתגר *אותך* ביומיום מולו?`);
+    return true;
+  }
+
+  if (step === 'onboarding_partner_perspective') {
+    draft.partner_perspective = text;
+    // In a real app, we would save this to the AI's child_profile or memories table here.
+    await finishOnboarding(ctx, userId, draft, state.family_id);
+    return true;
+  }
+
+  // Parent 1 Flow
   if (step === 'onboarding_name') {
     draft.display_name = text;
 
     const keyboard = new InlineKeyboard();
-    COUNTRY_OPTIONS.slice(0, 4).forEach((o) => keyboard.text(o.label, o.callback).row());
-    COUNTRY_OPTIONS.slice(4).forEach((o) => keyboard.text(o.label, o.callback).row());
+    COUNTRY_OPTIONS.forEach((o) => keyboard.text(o.label, o.callback).row());
 
     await setUserState(userId, {
       current_mode: 'journal',
@@ -55,7 +98,7 @@ export async function handleOnboardingStep(ctx: Context, text: string): Promise<
     });
 
     await ctx.reply(
-      `נעים, *${text}*! 🙌\n\nאיפה אתה גר? (כדי לדעת מתי לשלוח בריפים)`,
+      `נעים, *${text}*! 🙌\n\nבאיזה אזור זמן אתם גרים? (כדי לדעת מתי לשלוח בריפים)`,
       { parse_mode: 'Markdown', reply_markup: keyboard }
     );
     return true;
@@ -67,14 +110,14 @@ export async function handleOnboardingStep(ctx: Context, text: string): Promise<
       journal_step: 'onboarding_tz_manual',
       journal_draft: draft,
     });
-    await safeSend(ctx, `כתוב את ה-timezone שלך בפורמט IANA, למשל:\nAsia/Bangkok, Europe/Paris, America/Chicago`);
+    await safeSend(ctx, `כתוב את ה-timezone שלך בפורמט IANA (למשל Europe/Paris)`);
     return true;
   }
 
   if (step === 'onboarding_tz_manual') {
     draft.timezone = text.trim();
     draft.week_start = 'monday';
-    await finishOnboarding(ctx, userId, draft);
+    await finishOnboarding(ctx, userId, draft, state.family_id);
     return true;
   }
 
@@ -104,44 +147,44 @@ export async function handleCountryCallback(ctx: Context) {
   draft.week_start = option.week_start;
 
   await ctx.answerCallbackQuery();
-  await finishOnboarding(ctx, userId, draft);
+  await finishOnboarding(ctx, userId, draft, state.family_id);
 }
 
-async function finishOnboarding(ctx: Context, userId: number, draft: Record<string, string>) {
+async function finishOnboarding(ctx: Context, userId: number, draft: Record<string, string>, familyId: string) {
+  // If partner, they inherit the timezone of the family ideally, but for now we'll just set defaults if missing
+  const timezone = draft.timezone || 'Asia/Jerusalem';
+  const weekStart = draft.week_start || 'sunday';
+
   await setUserState(userId, {
     current_mode: null,
     journal_step: null,
     journal_draft: null,
-    // @ts-ignore — extra fields stored via upsert
-    timezone: draft.timezone,
-    week_start: draft.week_start,
     onboarded: true,
     display_name: draft.display_name,
   });
 
-  // Also save extra fields directly
   const { supabase } = await import('../supabase/client');
-  await supabase.from('user_states').upsert({
-    telegram_user_id: userId,
-    timezone: draft.timezone,
-    week_start: draft.week_start,
-    onboarded: true,
-    display_name: draft.display_name,
-    updated_at: new Date().toISOString(),
-  });
+  await supabase.from('user_states').update({
+    timezone,
+    week_start: weekStart,
+  }).eq('telegram_user_id', userId);
 
-  const localTime = new Date().toLocaleString('he-IL', {
-    timeZone: draft.timezone,
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-  await safeSend(
-    ctx,
-    `✅ *מוכן, ${draft.display_name}!*\n\n` +
-      `📍 Timezone: ${draft.timezone} (עכשיו ${localTime})\n` +
-      `📅 שבוע מתחיל ב: ${draft.week_start === 'sunday' ? 'ראשון' : 'שני'}\n\n` +
-      `הבריף הבוקר יגיע ב-7:00 בבוקר לפי השעה שלך.\n\n` +
-      `עכשיו — ספר לי מה קורה.`
-  );
+  // If this is Parent 1, fetch their invite code to share
+  if (draft.is_partner === 'false') {
+    const { data: family } = await supabase.from('families').select('invite_code').eq('id', familyId).single();
+    const inviteLink = `https://t.me/${ctx.me.username}?start=invite_${family.invite_code}`;
+    
+    await safeSend(
+      ctx,
+      `✅ *הפרופיל המשפחתי הוקם בהצלחה, ${draft.display_name}!*\n\n` +
+      `כדי שהמערכת תלמד את התמונה המלאה, הזמן את בן/בת הזוג שלך דרך הלינק הזה:\n${inviteLink}\n\n` +
+      `עכשיו — אתה יכול לשתף אותי בקושי הראשון שלכם.`
+    );
+  } else {
+    await safeSend(
+      ctx,
+      `✅ *מעולה, ${draft.display_name}. הפרופיל שלך סונכרן עם המשפחה.*\n\n` +
+      `אני כאן למקרי חירום (SOS) או סתם כדי לפרוק בסוף היום.`
+    );
+  }
 }

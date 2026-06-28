@@ -10,6 +10,7 @@ import {
   saveConversationTurn,
   setUserState,
   getUserState,
+  supabase,
 } from '../src/supabase/client';
 import { askGemini } from '../src/gemini/client';
 import { buildSystemPrompt } from '../src/claude/prompts';
@@ -163,13 +164,29 @@ export default async function handler(req: any, res: any) {
       // Send typing indicator (non-blocking fire-and-forget)
       sendTypingAction(job.chat_id);
 
+      if (!state?.family_id) {
+        throw new Error('User has no family_id. Cannot process job.');
+      }
+      const familyId = state.family_id;
+      const parentName = state.display_name || 'Parent';
+
       // Fetch context in parallel
       const [recentJournals, history] = await Promise.all([
-        getRecentJournals(7),
+        getRecentJournals(familyId, 7),
         getConversationHistory(job.telegram_user_id, 10),
       ]);
 
-      const systemPrompt = buildSystemPrompt(recentJournals, 'chat', author);
+      const { data: children } = await supabase.from('children').select('*').eq('family_id', familyId);
+      const { data: parents } = await supabase.from('user_states').select('display_name, telegram_user_id').eq('family_id', familyId);
+      const { data: memories } = await supabase.from('memories').select('summary').eq('family_id', familyId).eq('status', 'active');
+      
+      const familyContext = {
+        children: (children || []).map(c => ({ name: c.name, age: Number(c.age), tags: c.profile_tags || [] })),
+        parents: (parents || []).map(p => ({ name: p.display_name || 'Parent' })),
+        memories: (memories || []).map(m => m.summary)
+      };
+
+      const systemPrompt = buildSystemPrompt(recentJournals, 'chat', parentName, familyContext);
 
       let processedText = job.text;
 

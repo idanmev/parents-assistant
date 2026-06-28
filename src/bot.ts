@@ -34,9 +34,10 @@ bot.on('callback_query:data', async (ctx) => {
 bot.command('start', async (ctx) => {
   const userId = ctx.from!.id;
   const alreadyOnboarded = await isOnboarded(userId);
+  const startPayload = ctx.match; // e.g., 'invite_ABC12'
 
   if (!alreadyOnboarded) {
-    await startOnboarding(ctx);
+    await startOnboarding(ctx, startPayload);
     return;
   }
 
