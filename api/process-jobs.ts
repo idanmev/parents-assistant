@@ -14,6 +14,7 @@ import {
 import { askGemini } from '../src/gemini/client';
 import { buildSystemPrompt } from '../src/claude/prompts';
 import { getAuthor, isAuthorizedUser } from '../src/utils/users';
+import { transcribeFileId } from '../src/handlers/voice';
 
 // Telegram Bot API instance — used to send messages directly without Grammy.
 // We use sendMessage directly (not Grammy ctx.reply) since we have no request context.
@@ -170,9 +171,31 @@ export default async function handler(req: any, res: any) {
 
       const systemPrompt = buildSystemPrompt(recentJournals, 'chat', author);
 
+      let processedText = job.text;
+
+      // Handle voice messages
+      if (processedText.startsWith('[VOICE]')) {
+        const fileId = processedText.replace('[VOICE]', '');
+        console.log(`[ProcessJobs] job ${job.id} — Transcribing voice message ${fileId}...`);
+        try {
+          const transcription = await transcribeFileId(fileId);
+          if (!transcription) {
+            throw new Error('Transcription returned null');
+          }
+          processedText = transcription;
+          console.log(`[ProcessJobs] job ${job.id} — Transcription: "${processedText}"`);
+          // Send acknowledgment
+          await sendTelegramMessage(job.chat_id, `_שמעתי: "${processedText}"_`);
+        } catch (err: any) {
+          console.error(`[ProcessJobs] job ${job.id} — Voice transcription failed:`, err.message);
+          await sendTelegramMessage(job.chat_id, 'לא הצלחתי להבין את ההקלטה. נסה להקליד?');
+          throw err;
+        }
+      }
+
       console.log(`[ProcessJobs] job ${job.id} — calling Gemini...`);
       const geminiStart = Date.now();
-      const response = await askGemini(systemPrompt, history, job.text);
+      const response = await askGemini(systemPrompt, history, processedText);
       console.log(`[ProcessJobs] job ${job.id} — Gemini done in ${Date.now() - geminiStart}ms`);
 
       const chunks = splitMessage(response);
@@ -191,7 +214,7 @@ export default async function handler(req: any, res: any) {
 
       // Save conversation to DB
       await Promise.all([
-        saveConversationTurn(job.telegram_user_id, 'user', job.text, 'chat'),
+        saveConversationTurn(job.telegram_user_id, 'user', processedText, 'chat'),
         saveConversationTurn(job.telegram_user_id, 'assistant', response, 'chat'),
         setUserState(job.telegram_user_id, { current_mode: 'chat' }),
       ]);
