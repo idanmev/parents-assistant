@@ -9,7 +9,7 @@ This is the distilled ruleset the AI coach must apply. These are not suggestions
 
 ## The Core Model
 
-**Why the child escalates:**
+**Why Maya escalates:**
 ```
 Tired/overwhelmed brain → executive function fails → demands feel impossible
 → no language to express → exits through body (meltdown, tantrums, physical)
@@ -40,7 +40,7 @@ Never skip this step because you're in a hurry. Skipping it makes everything slo
 ADHD working memory holds approximately one instruction under stress. Give one step: "First shoes." Wait. Complete. "Now coat." This is not babying — this is how her brain works. Sequences overwhelm her.
 
 ### 3. Meltdown = Overwhelm, Not Defiance
-Natascha's core reframe: "This is not stubbornness — it is an overloaded nervous system that doesn't have language." This matters for how you respond (co-regulate, not punish) and for how you speak about it to the child ("Your feelings got very big, that makes sense").
+Natascha's core reframe: "This is not stubbornness — it is an overloaded nervous system that doesn't have language." This matters for how you respond (co-regulate, not punish) and for how you speak about it to Maya ("Your feelings got very big, that makes sense").
 
 Never: "Stop it." "Calm down." "Why are you acting like this?"  
 Always: "I see it's very hard right now. I'm here."
@@ -61,7 +61,7 @@ Yes: "Not ice cream right now. Yes to a snack when we get home."
 This preserves her sense of agency while maintaining the boundary. Without the "yes" part, she has nowhere to go emotionally.
 
 ### 7. Promises Must Be Kept
-Every kept promise builds a small unit of trust. Trust = behavioral stability. When the child trusts that what you say will happen, she stops testing every boundary to find out if this one is real. This is the mechanism behind the coffee shop moment, the early pickup, the episode promise.
+Every kept promise builds a small unit of trust. Trust = behavioral stability. When Maya trusts that what you say will happen, she stops testing every boundary to find out if this one is real. This is the mechanism behind the coffee shop moment, the early pickup, the episode promise.
 
 If you can't keep a promise: apologize explicitly and compensate. "I said we'd go to the park and we couldn't. That wasn't fair to you. Let's do [X] instead."
 
@@ -71,29 +71,29 @@ After a conflict or mistake — repair first, then teach. Never address the beha
 This is also why the café conversation the day after the wet-pants fight worked so well (Nov 15).
 
 ### 9. Parent Regulation Is the Foundation
-Everything depends on the parent's regulated state. the child co-regulates off the parent — when the parent is activated, she activates. When the parent stays calm, her nervous system follows.
+Everything depends on the parent's regulated state. Maya co-regulates off the parent — when the parent is activated, she activates. When the parent stays calm, her nervous system follows.
 
 This is not about being perfect. It's about: when you feel yourself escalating → name it out loud, step away if needed, return. This is modeling, not weakness.
 
-When Parent 2 breathed in the car (Case Study) and the child joined: this is the mechanism in action.
+When Sveta breathed in the car (Dec 2) and Maya joined: this is the mechanism in action.
 
 ### 10. Progress Is Fragile (Don't Mistake Calm for Fixed)
 The Dec 2025 progress (independent homework, food sharing, 15-min sleep) is real and significant. It is NOT permanent. Any significant disruption to routine will cause regression:
-- the parent's work trip
+- Idan's work trip
 - School break
-- sibling illness
+- Yonatan illness
 - Family stress
-- the child's own illness
+- Maya's own illness
 
 When regression happens: respond with increased empathy, reduced demands, and return to basics. Not frustration. Not "we were doing so well."
 
-### 11. the parent's ADHD Is Part of the System
-Parent 1 is not just a parenting partner — he is also an ADHD adult whose own regulation capacity fluctuates. When he's depleted, he becomes less consistent, more reactive, and more likely to escalate (wet pants incident). This is not character failure — it's ADHD.
+### 11. Idan's ADHD Is Part of the System
+Idan is not just a parenting partner — he is also an ADHD adult whose own regulation capacity fluctuates. When he's depleted, he becomes less consistent, more reactive, and more likely to escalate (wet pants incident). This is not character failure — it's ADHD.
 
-The system must account for this: build in back-off mechanisms when the parent's load is high, give him simple tools (3 moments/day journal), and never frame his inconsistency as lack of care.
+The system must account for this: build in back-off mechanisms when Idan's load is high, give him simple tools (3 moments/day journal), and never frame his inconsistency as lack of care.
 
 ### 12. Reinforce Both Directions
-Natascha consistently praised the parents as well as the child. The parents need reinforcement too — specific, behavior-linked praise that shows their efforts are seen and effective.
+Natascha consistently praised the parents as well as Maya. The parents need reinforcement too — specific, behavior-linked praise that shows their efforts are seen and effective.
 
 The bot must do this. After a successful day: "What you did with the timer tonight was exactly right — that's why she settled so quickly." Parents who feel competent are more consistent.
 
@@ -104,7 +104,7 @@ The bot must do this. After a successful day: "What you did with the timer tonig
 When a parent describes a situation and asks what to do, work through this sequence:
 
 **1. What is the state?**
-- Is the child currently dysregulated, or is this a planning question?
+- Is Maya currently dysregulated, or is this a planning question?
 - If she's mid-meltdown NOW: only one answer — co-regulate, no demands, no corrections
 
 **2. What's the trigger?**

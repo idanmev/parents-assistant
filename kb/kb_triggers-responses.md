@@ -1,7 +1,7 @@
-# the child — Trigger Map & Response Protocols
+# Maya — Trigger Map & Response Protocols
 
 **Last updated:** 2026-05-09  
-**Source:** All journal entries historical data + Natascha coaching + research synthesis
+**Source:** All journal entries Nov–Dec 2025 + Natascha coaching + research synthesis
 
 ---
 
@@ -31,7 +31,7 @@
 
 **Response protocol:**
 - Less talking, less discussing — more clear leading
-- One step at a time, stated as fact not question: "the child, first socks, then shirt, I'll help you"
+- One step at a time, stated as fact not question: "Maya, first socks, then shirt, I'll help you"
 - NEVER: "Do you want to get dressed?" (open question = impossible task when exhausted)
 - Physical help with dressing is fine and age-appropriate for ADHD
 - If she names a feeling ("I'm tired, I want to be home") → validate immediately, then move: "I hear you, and we're going forward together — first shoes"
@@ -60,7 +60,7 @@
 - Playful reframe: "Let's do a secret mission to the bathroom" / "Let's hide from Mom and go shower"
 - Transition bridge: physical object (croissant, snack) or activity she moves toward, not away from
 - Never: "Time's up, stop now" with no warning
-- Dinner → shower Parent 1 method: timer + secret sign between them → worked immediately
+- Dinner → shower Idan method: timer + secret sign between them → worked immediately
 - Hold the limit with playfulness, not escalation
 
 ---
@@ -80,22 +80,22 @@
 
 ---
 
-## Trigger 4: Parent Unavailability (sibling, Work Trips)
+## Trigger 4: Parent Unavailability (Yonatan, Work Trips)
 
 **Why:** Loss of co-regulation support = ADHD nervous system without its external scaffolding. Not jealousy in the simple sense — actual regulatory need.
 
 **Looks like:**
-- Interrupting sibling's bedtime repeatedly
+- Interrupting Yonatan's bedtime repeatedly
 - Demanding attention during feeding
-- Increased meltdowns when Parent 2 is solo with both
-- the parent's absence → more morning resistance
+- Increased meltdowns when Sveta is solo with both
+- Idan's absence → more morning resistance
 
 **Response protocol:**
-- Pre-announce sibling bedtime routine: "While I put sibling to sleep, you watch your episode. When I come out, we do X together"
+- Pre-announce Yonatan bedtime routine: "While I put Yonatan to sleep, you watch your episode. When I come out, we do X together"
 - Give her the schedule: she should know what she does during, and what comes after
 - One predictable daily 1:1 moment (coffee shop, balcony dinner, 5 min talk before sleep) acts as buffer
-- When saying "I can't right now — sibling": pair with concrete timer/promise "In 10 minutes when he's asleep, I'm all yours"
-- Parent 1 away = Parent 2 solo: prepare her the day before, "Dad comes back Thursday, let's mark it on the chalkboard"
+- When saying "I can't right now — Yonatan": pair with concrete timer/promise "In 10 minutes when he's asleep, I'm all yours"
+- Idan away = Sveta solo: prepare her the day before, "Dad comes back Thursday, let's mark it on the chalkboard"
 
 ---
 
@@ -145,7 +145,7 @@
 - Hands in food/cup during dinner
 - Splashing water during shower
 - Wiping dirty hands on parent
-- Rough touching of sibling
+- Rough touching of Yonatan
 
 **Response protocol:**
 - During dinner: NOT reacting to minor body-limit testing → allows her to eat and self-regulate

@@ -1,7 +1,7 @@
-# the child — Daily Structure & Routines
+# Maya — Daily Structure & Routines
 
 **Last updated:** 2026-05-09  
-**Source:** Journals historical data + Natascha's coaching + research on ADHD routines
+**Source:** Journals Nov–Dec 2025 + Natascha's coaching + research on ADHD routines
 
 The routines documented here are those that have been shown to work across multiple journal entries. The sequence matters as much as the content — ADHD children depend on predictable sequences, not just rules.
 
@@ -34,7 +34,7 @@ The routines documented here are those that have been shown to work across multi
 - That's the real source of resistance. Name it. "Yesterday was hard because [friend left]. Makes sense you don't want to go. We'll talk more in the car."
 
 **If she's physically sick or very tired:**
-- Don't try to raise energy or enter play mode (Case Study lesson — this backfires)
+- Don't try to raise energy or enter play mode (Dec 2 lesson — this backfires)
 - Start smaller and quieter: "I see it's hard to wake up. Let's just do face wash first"
 - Timer tools don't work when her brain hasn't "lit up" yet — skip them on sick/overtired days
 
@@ -57,7 +57,7 @@ The routines documented here are those that have been shown to work across multi
 - If post-difficult-evening: sometimes she'll self-initiate homework independently (Dec 6 entry). Let her — and reinforce hugely when it happens.
 
 **Neighbor play:**
-- Fine after school — a clear connection anchor for the child
+- Fine after school — a clear connection anchor for Maya
 - 3 calls before "time to come in" (5 min, 2 min, now)
 - When called in: pair with something she's moving toward (snack, activity inside)
 - If neighbor comes over uninvited in the morning: clear and kind "Not now, we're getting ready. After school."
@@ -71,13 +71,13 @@ The routines documented here are those that have been shown to work across multi
 
 ## Evening Routine
 
-**Key principle:** Review the schedule with the child before starting it. She repeats it back.
-> "Tonight: wash hands → eat → shower → one episode while I put sibling to sleep → room time → sleep. Got it?"
+**Key principle:** Review the schedule with Maya before starting it. She repeats it back.
+> "Tonight: wash hands → eat → shower → one episode while I put Yonatan to sleep → room time → sleep. Got it?"
 
 **Sequence:**
-1. **Hands + eat** — the child at table, dinner without demands on behavior
+1. **Hands + eat** — Maya at table, dinner without demands on behavior
 2. **Shower** — transition via playfulness ("Let's see how fast we can do this" / "secret mission")
-3. **1 episode (alone)** while Parent 2 puts sibling to sleep — she manages the end herself; don't interrupt this
+3. **1 episode (alone)** while Sveta puts Yonatan to sleep — she manages the end herself; don't interrupt this
 4. **Room time** — drawing, chalkboard, quiet activity of her choice
 5. **Bedtime prep** — brush teeth (she may negotiate; hold calmly)
 6. **Bedtime** (see below)
@@ -87,8 +87,8 @@ The routines documented here are those that have been shown to work across multi
 - If escalating: name what's happening ("I see you need to be close right now") + offer alternative ("Come sit next to me")
 
 **Shower transition (reliable methods):**
-- Parent 1: "Let's hide from Mom and shower — she doesn't know our secret"
-- Parent 2: timer + explicit "when you finish shower, you get your episode"
+- Idan: "Let's hide from Mom and shower — she doesn't know our secret"
+- Sveta: timer + explicit "when you finish shower, you get your episode"
 - If she resists hard: check how the day was. High-load day = need more empathy before transition push.
 
 **Episode time:**
@@ -109,15 +109,15 @@ The routines documented here are those that have been shown to work across multi
 
 **If she asks for more story:**
 - Hold it with playfulness, not irritation: "Nope, that was the one! Sleep tight."
-- Parent 2 reinforcing Parent 1 (or vice versa) → critical. She needs to see unified front at bedtime.
+- Sveta reinforcing Idan (or vice versa) → critical. She needs to see unified front at bedtime.
 - She falls asleep within 10–15 min when the sequence is followed.
 
 **If it took forever the night before:**
 - Don't start bedtime late. Earlier start = less exhausted = easier.
 - Check if she needs more silliness time (sometimes the 5 min isn't enough if the day was hard)
 
-**If she had a nap or sibling's bedtime ran long:**
-- Just reassure her: "I know I took long with sibling. I'm here now."
+**If she had a nap or Yonatan's bedtime ran long:**
+- Just reassure her: "I know I took long with Yonatan. I'm here now."
 - She may need 5 extra minutes of connection before she can settle.
 
 ---
@@ -126,9 +126,9 @@ The routines documented here are those that have been shown to work across multi
 
 **Homework:** Saturday morning is the best window, before energy depletes from play.
 
-**1:1 time:** At least one protected parent–the child time weekly (coffee shop, balcony dinner, outing). This is the highest-leverage investment. When she gets this consistently, meltdowns across the whole week reduce.
+**1:1 time:** At least one protected parent–Maya time weekly (coffee shop, balcony dinner, outing). This is the highest-leverage investment. When she gets this consistently, meltdowns across the whole week reduce.
 
-**sibling time:** the child does better when she has a small role (choosing sibling's outfit, getting a diaper). Makes her feel included, not displaced.
+**Yonatan time:** Maya does better when she has a small role (choosing Yonatan's outfit, getting a diaper). Makes her feel included, not displaced.
 
 **Structure maintenance:** Even on weekends, core sequences (wake → food → activity → nap (if any) → activity → dinner → bedtime) should be preserved. The times can flex; the order shouldn't.
 
@@ -138,7 +138,7 @@ The routines documented here are those that have been shown to work across multi
 
 Natascha's framing: "Predictability is not rigidity. The sequences matter more than the clock."
 
-the child doesn't need a military schedule. She needs:
+Maya doesn't need a military schedule. She needs:
 - To know what comes next
 - To know what the rule is
 - To know that the rule today = the rule tomorrow
