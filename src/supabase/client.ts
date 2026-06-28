@@ -10,14 +10,23 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function createFamily(): Promise<string | null> {
   const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  console.log(`[createFamily] Attempting to insert family with invite code: ${inviteCode}`);
+  
   const { data, error } = await supabase.from('families').insert({
     invite_code: inviteCode
   }).select('id').single();
   
   if (error) {
-    console.error('Error creating family:', error);
+    console.error('[createFamily] FAILED to create family. Full error:', JSON.stringify({
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    }));
     return null;
   }
+  
+  console.log(`[createFamily] Success. Family created with id: ${data.id}`);
   return data.id;
 }
 
