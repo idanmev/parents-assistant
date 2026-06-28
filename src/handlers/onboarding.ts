@@ -156,6 +156,7 @@ async function finishOnboarding(ctx: Context, userId: number, draft: Record<stri
   const weekStart = draft.week_start || 'sunday';
 
   await setUserState(userId, {
+    family_id: familyId,
     current_mode: null,
     journal_step: null,
     journal_draft: null,
