@@ -5,11 +5,9 @@ const KB_DIR = path.join(__dirname, '../../kb');
 
 const KB_FILES = [
   'kb_coaching-principles.md',
-  'kb_maya-profile.md',
   'kb_triggers-responses.md',
   'kb_what-works.md',
   'kb_daily-structure.md',
-  'kb_parent-profiles.md',
 ];
 
 let cachedKB: string | null = null;
