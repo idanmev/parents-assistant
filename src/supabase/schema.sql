@@ -24,8 +24,8 @@ CREATE TABLE IF NOT EXISTS children (
 CREATE TABLE IF NOT EXISTS user_states (
   telegram_user_id BIGINT PRIMARY KEY,
   family_id UUID REFERENCES families(id) ON DELETE CASCADE,
-  current_mode TEXT CHECK (current_mode IN ('sos', 'chat', 'journal', NULL)),
-  journal_step TEXT CHECK (journal_step IN ('what_worked', 'what_challenged', 'what_to_try', 'confirm', NULL)),
+  current_mode TEXT,
+  journal_step TEXT,
   journal_draft JSONB,
   week_start TEXT CHECK (week_start IN ('sunday', 'monday')) DEFAULT 'sunday',
   timezone TEXT DEFAULT 'Asia/Jerusalem',
