@@ -102,11 +102,13 @@ export default async function handler(req: any, res: any) {
   // Send typing immediately
   await sendTyping(chatId);
 
-  // Respond to Telegram right away — Telegram needs 200 within a few seconds
-  // but the function itself can keep running up to 300s.
-  res.status(200).send('OK');
+  // We MUST NOT send res.status(200) here. 
+  // Vercel serverless functions terminate immediately when a response is sent.
+  // We will keep the request open while we process.
+  // If Telegram times out after 10s, it will retry. Our claimUpdate idempotency 
+  // check will catch the retries and return 200 immediately for them.
 
-  // --- Heavy async processing continues after response ---
+  // --- Heavy async processing ---
   try {
     const state = await getUserState(telegramUserId);
 
@@ -173,10 +175,12 @@ export default async function handler(req: any, res: any) {
     ]);
 
     console.log(`[Webhook] update_id=${updateId} complete.`);
+    return res.status(200).send('OK');
   } catch (err: any) {
     console.error(`[Webhook] update_id=${updateId} FAILED:`, err?.message ?? err);
     try {
       await sendTelegramMessage(chatId, '❌ משהו השתבש. נסה שוב.');
     } catch { /* ignore */ }
+    return res.status(200).send('OK');
   }
 }
