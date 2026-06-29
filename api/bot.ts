@@ -73,7 +73,21 @@ export default async function handler(req: any, res: any) {
     }
 
     // Enqueue for async processing
-    await enqueueJob(updateId, telegramUserId, chatId, messageId ?? 0, text);
+    await enqueueJob(updateId, telegramUserId, chatId, messageId ?? 0, contentToQueue ?? '');
+
+    // Fire-and-forget: trigger process-jobs immediately (don't wait for cron)
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXT_PUBLIC_BASE_URL || '';
+    if (baseUrl) {
+      const cronSecret = process.env.CRON_SECRET;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (cronSecret) headers['Authorization'] = `Bearer ${cronSecret}`;
+      fetch(`${baseUrl}/api/process-jobs`, { method: 'GET', headers }).catch((e: any) =>
+        console.warn(`[Webhook] process-jobs trigger failed (non-fatal): ${e.message}`)
+      );
+      console.log(`[Webhook] Triggered process-jobs at ${baseUrl}/api/process-jobs`);
+    }
 
     return res.status(200).send('OK');
   } catch (err: any) {

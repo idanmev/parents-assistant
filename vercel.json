@@ -9,11 +9,5 @@
     "api/cron.ts": {
       "maxDuration": 300
     }
-  },
-  "crons": [
-    {
-      "path": "/api/process-jobs",
-      "schedule": "* * * * *"
-    }
-  ]
+  }
 }

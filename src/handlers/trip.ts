@@ -1,6 +1,6 @@
 import { Context, Bot } from 'grammy';
 import { generateMorningBrief } from '../gemini/client';
-import { getRecentJournals } from '../supabase/client';
+import { getRecentJournals, getUserState } from '../supabase/client';
 import { safeSend } from '../utils/send';
 
 async function buildTripPrompt(who: 'idan' | 'sveta', days: number, journals: string): Promise<string> {
@@ -53,7 +53,9 @@ export async function handleTrip(ctx: Context) {
 
   await ctx.replyWithChatAction('typing');
 
-  const journals = await getRecentJournals(4);
+  const state = await getUserState(userId);
+  const familyId = state?.family_id || '';
+  const journals = await getRecentJournals(familyId, 4);
   const prompt = await buildTripPrompt(who, days, journals);
   const brief = await generateMorningBrief(prompt);
 
@@ -67,7 +69,9 @@ export async function handleBack(ctx: Context) {
 
   await ctx.replyWithChatAction('typing');
 
-  const journals = await getRecentJournals(7);
+  const state = await getUserState(userId);
+  const familyId = state?.family_id || '';
+  const journals = await getRecentJournals(familyId, 7);
   const prompt = await buildReturnPrompt(who, journals);
   const brief = await generateMorningBrief(prompt);
 
@@ -81,7 +85,10 @@ export async function handleBreak(ctx: Context) {
 
   await ctx.replyWithChatAction('typing');
 
-  const journals = await getRecentJournals(4);
+  const userId = ctx.from!.id;
+  const state = await getUserState(userId);
+  const familyId = state?.family_id || '';
+  const journals = await getRecentJournals(familyId, 4);
 
   const prompt = `${breakName} starts soon. Maya (6.5, ADHD) historically struggles with school breaks — loss of routine, more time at home, less structure.
 
@@ -95,7 +102,7 @@ Write a school break prep brief in Hebrew:
 **מה לצפות:** [How Maya typically responds to break — what gets harder, what gets easier]
 **המבנה המינימלי:** [The 2-3 structure elements to keep even during break — the ones that matter most]
 **כלי אחד:** [One specific technique for the hardest moment of break days — usually unstructured afternoon time]
-**ציפיות:** [One expectation to lower, one expectation to keep]
+**ציפייות:** [One expectation to lower, one expectation to keep]
 
 Under 150 words. Hebrew. Specific to this family.`;
 

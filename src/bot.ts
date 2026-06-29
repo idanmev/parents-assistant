@@ -3,7 +3,7 @@ import * as dotenv from 'dotenv';
 import { transcribeVoice } from './handlers/voice';
 import { handleChat } from './handlers/chat';
 import { startJournal, handleJournalStep, autoSaveJournalIfNeeded } from './handlers/journal';
-import { sendMorningBriefToUser } from './handlers/morning';
+import { sendMorningBriefToFamily } from './handlers/morning';
 import { sendWeeklyBrief } from './handlers/weekly';
 import { handleTrip, handleBack, handleBreak } from './handlers/trip';
 import { startOnboarding, handleOnboardingStep, handleCountryCallback } from './handlers/onboarding';
@@ -62,8 +62,13 @@ bot.command('journal', async (ctx) => {
 bot.command('brief', async (ctx) => {
   const userId = ctx.from!.id;
   await ctx.replyWithChatAction('typing');
-  const tz = await getUserTimezone(userId);
-  await sendMorningBriefToUser(bot, userId, tz);
+  const state = await getUserState(userId);
+  const familyId = state?.family_id;
+  if (!familyId) {
+    await ctx.reply('טרם סיימת הרשמה. כתוב /start');
+    return;
+  }
+  await sendMorningBriefToFamily(bot, familyId, [userId]);
 });
 
 bot.command('weekly', async (ctx) => {
@@ -92,21 +97,21 @@ bot.command('stop', async (ctx) => {
 // ─── Voice messages ────────────────────────────────────────────────────────────
 bot.on('message:voice', async (ctx) => {
   const userId = ctx.from!.id;
-  await ctx.replyWithChatAction('typing');
-
-  const transcribed = await transcribeVoice(ctx);
-  if (!transcribed) {
-    await ctx.reply('לא הצלחתי להבין את ההקלטה. נסה להקליד?');
-    return;
-  }
-
-  await ctx.reply(`_שמעתי: "${transcribed}"_`, { parse_mode: 'Markdown' });
-
   const state = await getUserState(userId);
+
   if (state?.current_mode === 'journal') {
+    // Journal voice: handled synchronously (fast)
+    await ctx.replyWithChatAction('typing');
+    const transcribed = await transcribeVoice(ctx);
+    if (!transcribed) {
+      await ctx.reply('לא הצלחתי להבין את ההקלטה. נסה להקליד?');
+      return;
+    }
+    await ctx.reply(`_שמעתי: "${transcribed}"_`, { parse_mode: 'Markdown' });
     await handleJournalStep(ctx, transcribed);
   } else {
-    await handleChat(ctx, transcribed);
+    // Chat voice: enqueue — processing-jobs will transcribe + call Gemini
+    await ctx.reply('🎤 שמעתי, עונה בעוד רגע...');
   }
 });
 
@@ -127,7 +132,12 @@ bot.on('message:text', async (ctx) => {
     return;
   }
 
-  await handleChat(ctx, text);
+  // Regular chat: do NOT call Gemini here — it will timeout.
+  // The job queue (api/bot.ts → process-jobs) handles it asynchronously.
+  // This handler only fires if api/bot.ts passed the request to Grammy
+  // (e.g., commands). For non-command text api/bot.ts returns 200 directly.
+  // Fallback in case this code IS reached:
+  await ctx.reply('📨 קיבלתי, עונה בעוד כמה שניות...');
 });
 
 // ─── Scheduler logic has been moved to api/cron.ts for Vercel ───────────────

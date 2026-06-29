@@ -84,7 +84,7 @@ export async function sendWeeklyBrief(bot: Bot) {
   const [patternPrompt] = await Promise.all([buildPatternPrompt(journals)]);
 
   const weeklyBrief = await generateMorningBrief(patternPrompt);
-  await saveMorningBrief(`[WEEKLY] ${weeklyBrief}`);
+  await saveMorningBrief('system', `[WEEKLY] ${weeklyBrief}`, [IDAN_ID, SVETA_ID].filter(Boolean));
 
   const sends: Promise<unknown>[] = [];
   if (IDAN_ID) sends.push(bot.api.sendMessage(IDAN_ID, weeklyBrief, { parse_mode: 'Markdown' }));

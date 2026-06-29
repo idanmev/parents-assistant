@@ -173,7 +173,9 @@ async function finishOnboarding(ctx: Context, userId: number, draft: Record<stri
   // If this is Parent 1, fetch their invite code to share
   if (draft.is_partner === 'false') {
     const { data: family } = await supabase.from('families').select('invite_code').eq('id', familyId).single();
-    const inviteLink = `https://t.me/${ctx.me.username}?start=invite_${family.invite_code}`;
+    const inviteLink = family?.invite_code
+      ? `https://t.me/${ctx.me.username}?start=invite_${family.invite_code}`
+      : `https://t.me/${ctx.me.username}`;
     
     await safeSend(
       ctx,
