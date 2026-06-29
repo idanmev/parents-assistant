@@ -72,8 +72,15 @@ bot.command('brief', async (ctx) => {
 });
 
 bot.command('weekly', async (ctx) => {
+  const userId = ctx.from!.id;
   await ctx.replyWithChatAction('typing');
-  await sendWeeklyBrief(bot);
+  const state = await getUserState(userId);
+  const familyId = state?.family_id;
+  if (!familyId) {
+    await ctx.reply('טרם סיימת הרשמה. כתוב /start');
+    return;
+  }
+  await sendWeeklyBrief(bot, familyId, [userId]);
 });
 
 bot.command('trip', async (ctx) => {
