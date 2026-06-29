@@ -13,10 +13,8 @@ export function getAuthor(telegramUserId: number): 'idan' | 'sveta' {
 }
 
 export function isAuthorizedUser(telegramUserId: number): boolean {
-  const idanId = parseInt(process.env.TELEGRAM_IDAN_ID || '0');
-  const svetaId = parseInt(process.env.TELEGRAM_SVETA_ID || '0');
-
-  return telegramUserId === idanId || telegramUserId === svetaId;
+  // Removed hardcoded checks. All users who use the bot and complete onboarding are authorized.
+  return true;
 }
 
 export function getAllUsers(): Array<{ telegramId: number; author: 'idan' | 'sveta' }> {
