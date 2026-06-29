@@ -4,10 +4,10 @@
   "outputDirectory": "public",
   "functions": {
     "api/process-jobs.ts": {
-      "maxDuration": 60
+      "maxDuration": 300
     },
     "api/cron.ts": {
-      "maxDuration": 60
+      "maxDuration": 300
     }
   },
   "crons": [

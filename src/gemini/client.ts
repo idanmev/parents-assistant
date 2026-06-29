@@ -6,7 +6,7 @@ dotenv.config();
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const MODEL = 'gemini-2.5-flash';
-const CHAT_MAX_OUTPUT_TOKENS = 3072;
+const CHAT_MAX_OUTPUT_TOKENS = 8192;
 const MORNING_BRIEF_MAX_OUTPUT_TOKENS = 2048;
 
 export async function askGemini(
@@ -42,19 +42,17 @@ export async function askGemini(
 
   console.log(`[Gemini] Response finished. Reason: ${finishReason}`);
 
-  if (finishReason === 'MAX_TOKENS') {
-    console.log(`[Gemini] MAX_TOKENS reached. Requesting ONE continuation...`);
+  // Loop up to 4 continuations if Gemini hits token limit
+  let continuationCount = 0;
+  while (finishReason === 'MAX_TOKENS' && continuationCount < 4) {
+    continuationCount++;
+    console.log(`[Gemini] MAX_TOKENS reached. Continuation attempt #${continuationCount}...`);
     const continuationStart = Date.now();
     
-    // Add context for continuation
     contents.push({ role: 'model', parts: [{ text: fullText }] });
     contents.push({
       role: 'user',
-      parts: [
-        {
-          text: `You hit the maximum length limit. Please continue your previous answer EXACTLY from where you left off. Do not repeat the beginning. Do not apologize or add conversational filler. Just continue the sentence or paragraph.`,
-        },
-      ],
+      parts: [{ text: `Continue your answer EXACTLY from where you left off. Do not repeat anything. Do not apologize. Just continue.` }],
     });
 
     const contResponse = await ai.models.generateContent({
@@ -66,8 +64,12 @@ export async function askGemini(
       },
     });
 
-    console.log(`[Gemini] Continuation ENDED. Took ${Date.now() - continuationStart}ms. Reason: ${contResponse.candidates?.[0]?.finishReason}`);
-    fullText += (contResponse.text || '');
+    const contText = contResponse.text || '';
+    const contFinishReason = contResponse.candidates?.[0]?.finishReason;
+    console.log(`[Gemini] Continuation #${continuationCount} done in ${Date.now() - continuationStart}ms. Reason: ${contFinishReason}`);
+    fullText += contText;
+    // update finish reason for next loop check
+    (finishReason as any) = contFinishReason;
   }
 
   return fullText;
